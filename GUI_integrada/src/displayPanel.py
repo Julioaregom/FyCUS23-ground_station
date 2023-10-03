@@ -3,7 +3,7 @@ import time, serial, threading,struct
 import bus_packet as bp
 import src.globals as GLOBALS
 import numpy as np
-from PyQt5.QtWidgets import QMainWindow, QMessageBox, QApplication, QLineEdit, QVBoxLayout, QLabel, QPushButton, QDialog, QCheckBox, QComboBox
+from PyQt5.QtWidgets import QMainWindow, QMessageBox, QApplication, QLineEdit, QVBoxLayout, QLabel, QPushButton, QDialog, QWidget, QCheckBox,QComboBox,QGraphicsGridLayout
 from interfaces.displayPanelUI import Ui_FyCUS23_DisplayPanel
 import multiprocessing as mp
 
@@ -20,7 +20,6 @@ class displayPanel(QMainWindow):
         self.displayPanelWindow=Ui_FyCUS23_DisplayPanel()
         self.displayPanelWindow.setupUi(self)
         self.stop_read_event = threading.Event()
-
 
         self.show()
         self.place_top_left()
@@ -101,16 +100,6 @@ class displayPanel(QMainWindow):
         except:
             pass
 
-    def customTcSet(self,data):
-        data_tc = data.to_bytes(3, byteorder='big')
-        data_tc = list(data_tc)
-        print(f"Enviando paquete - APID: {hex(bp.APID_TC_SET_PROGRMMED_TELEMETRY)}, DATA: {data_tc}")
-        try:
-            status, datos = bp.bus_packet_EncodePacketize(bp.BUS_PACKET_TYPE_TC, bp.APID_TC_SET_PROGRMMED_TELEMETRY, bp.BUS_PACKET_ECF_EXIST, data_tc, len(data_tc))
-            if status == 0:
-                self.tc_buffer.put(datos)
-        except:
-            pass
 
     def customTc(self, apid, data):
         import struct
@@ -123,6 +112,12 @@ class displayPanel(QMainWindow):
 
         # Aquí debes implementar la lógica para enviar el paquete con el APID y DATA proporcionados
         print(f"Enviando paquete - APID: {hex(apid)}, DATA: {data_tc}")
+        try:
+            status, datos = bp.bus_packet_EncodePacketize(bp.BUS_PACKET_TYPE_TC, apid, bp.BUS_PACKET_ECF_EXIST, data_tc, len(data_tc))
+            if status == 0:
+                self.tc_buffer.put(datos)
+        except:
+            pass
 
     #########################################
     ######   Thread related events   ########
@@ -138,34 +133,14 @@ class displayPanel(QMainWindow):
     def launchInputRead(self):
         status_thr = threading.Thread(target=self.statusReadThread,args=[self.stop_read_event], daemon=True)
         status_thr.start()
-
+            
     def statusReadThread(self, stop_thread_event: threading.Event):
         stop_thread_event.clear()
         while not stop_thread_event.is_set():
             time.sleep(0.1)
             try:           
                 data = self.tm_buffer.get()
-                if data != []:
-                    #self.changeText(data)
-                    self.displayPanelWindow.lbl_accelx.setText(str(data[0]))
-                    # self.displayPanelWindow.lbl_accely.setText(GLOBALS.GLOBAL_ACELL[1])
-                    # self.displayPanelWindow.lbl_accelz.setText(GLOBALS.GLOBAL_ACELL[2])
-                    # self.displayPanelWindow.lbl_gyrox.setText(GLOBALS.GLOBAL_GYRO[0])
-                    # self.displayPanelWindow.lbl_gyroy.setText(GLOBALS.GLOBAL_GYRO[1])
-                    # self.displayPanelWindow.lbl_gyroz.setText(GLOBALS.GLOBAL_GYRO[2])
-                    # self.displayPanelWindow.lbl_magx.setText(GLOBALS.GLOBAL_MAG[0])
-                    # self.displayPanelWindow.lbl_magy.setText(GLOBALS.GLOBAL_MAG[1])
-                    # self.displayPanelWindow.lbl_magz.setText(GLOBALS.GLOBAL_MAG[2])
-                    # self.displayPanelWindow.lbl_press.setText(GLOBALS.GLOBAL_PRESS)
-                    # self.displayPanelWindow.lbl_tempout.setText(GLOBALS.GLOBAL_TEMP[0])
-                    # self.displayPanelWindow.lbl_tempup.setText(GLOBALS.GLOBAL_TEMP[1])
-                    # self.displayPanelWindow.lbl_tempbatt.setText(GLOBALS.GLOBAL_TEMP[2])
-                    # self.displayPanelWindow.lbl_tempdown.setText(GLOBALS.GLOBAL_TEMP[3])
-                    # self.displayPanelWindow.lbl_pvA.setText(GLOBALS.GLOBAL_PV[0])
-                    # self.displayPanelWindow.lbl_pvV.setText(GLOBALS.GLOBAL_PV[1])
-                    # self.displayPanelWindow.lbl_batV.setText(GLOBALS.GLOBAL_BATT[1])
-                    # self.displayPanelWindow.lbl_batA.setText(GLOBALS.GLOBAL_BATT[0])
-                    # self.displayPanelWindow.lbl_batcarga.setText(GLOBALS.GLOBAL_BATT[2])
+                self.changeText(data)    # CON ESTE FUNCIONA
             except:
                 pass
 
@@ -259,39 +234,39 @@ class displayPanel(QMainWindow):
 
         if(data.data[1] & bp.REQUIRED_DATA_PV_VOLTAGE):
             last_pos = pos
-            pos+=4
-            pvV = bytes2float(data.data[last_pos:pos])
+            pos+=2
+            pvV = bytes2uint(data.data[last_pos:pos])
             self.displayPanelWindow.lbl_pvV.setText(str(pvV))    
         
         if(data.data[1] & bp.REQUIRED_DATA_PV_CURRENT):
             last_pos = pos
-            pos+=4
-            pvA = bytes2float(data.data[last_pos:pos])
+            pos+=2
+            pvA = bytes2uint(data.data[last_pos:pos])
             self.displayPanelWindow.lbl_pvA.setText(str(pvA)) 
         
         if(data.data[1] & bp.REQUIRED_DATA_BATTERY_VOLTAGE):
             last_pos = pos
-            pos+=4
-            batV = bytes2float(data.data[last_pos:pos])
+            pos+=2
+            batV = bytes2uint(data.data[last_pos:pos])
             self.displayPanelWindow.lbl_batV.setText(str(batV)) 
 
         if(data.data[1] & bp.REQUIRED_DATA_BATTERY_CURRENT):
             last_pos = pos
-            pos+=4
-            batA = bytes2float(data.data[last_pos:pos])
+            pos+=2
+            batA = bytes2uint(data.data[last_pos:pos])
             self.displayPanelWindow.lbl_batA.setText(str(batA)) 
 
         if(data.data[1] & bp.REQUIRED_DATA_BATTERY_CHARGING):
             last_pos = pos
-            pos+=4
-            batCh = bytes2float(data.data[last_pos:pos])
+            pos+=2
+            batCh = bytes2uint(data.data[last_pos:pos])
             self.displayPanelWindow.lbl_batcarga.setText(str(batCh)) 
 
-        # if(data.data[1] & bp.REQUIRED_DATA_BATTERY_DIETEMP):
-        #     last_pos = pos
-        #     pos+=4
-        #     batDie = bytes2float(data.data[last_pos:pos])
-        #     self.displayPanelWindow.lbl_batdie.setText(batDie) 
+        if(data.data[1] & bp.REQUIRED_DATA_BATTERY_DIETEMP):
+            last_pos = pos
+            pos+=2
+            batDie = bytes2uint(data.data[last_pos:pos])
+            #self.displayPanelWindow.lbl_.setText(str(batDie))
 
         if(data.data[1] & bp.REQUIRED_DATA_CURRENT_TIME):
             last_pos = pos
