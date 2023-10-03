@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'displayPanelUI.ui'
+# Form implementation generated from reading ui file '.\displayPanelUI.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.9
 #
@@ -458,6 +458,18 @@ class Ui_FyCUS23_DisplayPanel(object):
         font.setPointSize(12)
         self.pushButton_Rqall.setFont(font)
         self.pushButton_Rqall.setObjectName("pushButton_Rqall")
+        self.label = QtWidgets.QLabel(self.centralwidget)
+        self.label.setGeometry(QtCore.QRect(460, 290, 261, 31))
+        font = QtGui.QFont()
+        font.setPointSize(13)
+        self.label.setFont(font)
+        self.label.setObjectName("label")
+        self.verticalLayoutWidget = QtWidgets.QWidget(self.centralwidget)
+        self.verticalLayoutWidget.setGeometry(QtCore.QRect(450, 350, 391, 561))
+        self.verticalLayoutWidget.setObjectName("verticalLayoutWidget")
+        self.layoutApid = QtWidgets.QVBoxLayout(self.verticalLayoutWidget)
+        self.layoutApid.setContentsMargins(0, 0, 0, 0)
+        self.layoutApid.setObjectName("layoutApid")
         FyCUS23_DisplayPanel.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(FyCUS23_DisplayPanel)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 896, 26))
@@ -542,3 +554,4 @@ class Ui_FyCUS23_DisplayPanel(object):
         self.pushButton_Rqbat.setText(_translate("FyCUS23_DisplayPanel", "Request Bat"))
         self.pushButton_Rqcarga.setText(_translate("FyCUS23_DisplayPanel", "Request Carga"))
         self.pushButton_Rqall.setText(_translate("FyCUS23_DisplayPanel", "Request ALL"))
+        self.label.setText(_translate("FyCUS23_DisplayPanel", "Selecciona un APID:"))

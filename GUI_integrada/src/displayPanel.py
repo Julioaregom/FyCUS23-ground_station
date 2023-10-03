@@ -3,7 +3,7 @@ import time, serial, threading,struct
 import bus_packet as bp
 import src.globals as GLOBALS
 import numpy as np
-from PyQt5.QtWidgets import QMainWindow, QMessageBox, QApplication, QLineEdit, QVBoxLayout, QLabel, QPushButton, QDialog
+from PyQt5.QtWidgets import QMainWindow, QMessageBox, QApplication, QLineEdit, QVBoxLayout, QLabel, QPushButton, QDialog, QCheckBox, QComboBox
 from interfaces.displayPanelUI import Ui_FyCUS23_DisplayPanel
 import multiprocessing as mp
 
@@ -24,6 +24,7 @@ class displayPanel(QMainWindow):
 
         self.show()
         self.place_top_left()
+        self.setAPIDMenu()
         self.setSignalSlots()
         self.launchInputRead()
 
@@ -111,6 +112,17 @@ class displayPanel(QMainWindow):
         except:
             pass
 
+    def customTc(self, apid, data):
+        import struct
+
+        # Convierte data_tc en una secuencia de 4 bytes
+        data_tc = data.to_bytes(3, byteorder='big')
+
+        # Crea una lista para meterlo en la función
+        data_tc = list(data_tc)
+
+        # Aquí debes implementar la lógica para enviar el paquete con el APID y DATA proporcionados
+        print(f"Enviando paquete - APID: {hex(apid)}, DATA: {data_tc}")
 
     #########################################
     ######   Thread related events   ########
@@ -330,4 +342,90 @@ class displayPanel(QMainWindow):
         desktop_geo = QApplication.desktop().screenGeometry()
         self.move(desktop_geo.topLeft())
 
+    def setAPIDMenu(self):
+        apids = [
+            "APID_TC_PROGRAMMED_TELECOMMAND (0x20)",
+            "APID_TC_REQUIRED_REPORT_OBC (0x21)",
+            "APID_TC_REQUIRED_REPORT_EPS (0x22)",
+            "APID_TC_REQUIRED_REPORT_MODEM (0x23)",
+            "APID_TC_REQUIRED_DATA (0x24)",
+            "APID_TC_SET_PROGRMMED_TELEMETRY (0x30)",
+            "APID_TC_ARE_YOU_ALIVE (0x31)"
+        ]
 
+        self.combo_apid = QComboBox()
+        self.combo_apid.addItems(apids)
+        self.displayPanelWindow.layoutApid.addWidget(self.combo_apid)
+
+        self.checkbox_data_required = QCheckBox("Seleccionar datos requeridos:")
+        self.checkbox_data_required.stateChanged.connect(self.toggle_data_widgets)
+        self.displayPanelWindow.layoutApid.addWidget(self.checkbox_data_required)
+
+        # Casillas de verificación para los datos requeridos
+        self.checkboxes_data_required = []
+        data_required_labels = [
+            "REQUIRED_DATA_GNSS",
+            "REQUIRED_DATA_ACELL",
+            "REQUIRED_DATA_GYRO",
+            "REQUIRED_DATA_MAGNETOMETER",
+            "REQUIRED_DATA_PRESSURE",
+            "REQUIRED_DATA_TEMPERATURE_0",
+            "REQUIRED_DATA_TEMPERATURE_1",
+            "REQUIRED_DATA_TEMPERATURE_2",
+            "REQUIRED_DATA_TEMPERATURE_3",
+            "REQUIRED_DATA_PV_VOLTAGE",
+            "REQUIRED_DATA_PV_CURRENT",
+            "REQUIRED_DATA_BATTERY_VOLTAGE",
+            "REQUIRED_DATA_BATTERY_CURRENT",
+            "REQUIRED_DATA_CURRENT_TIME",
+            "REQUIRED_DATA_ALL"
+        ]
+
+        for label in data_required_labels:
+            checkbox = QCheckBox(label)
+            self.displayPanelWindow.layoutApid.addWidget(checkbox)
+            self.checkboxes_data_required.append(checkbox)
+
+        self.label_tiempo = QLabel("Tiempo (3-60 segundos):")
+        self.entrada_tiempo = QLineEdit()
+        self.boton_enviar = QPushButton("Enviar")
+        self.boton_enviar.clicked.connect(self.enviar_paquete)
+
+        # Inicialmente, ocultar los widgets de datos requeridos y tiempo
+        self.toggle_data_widgets()
+
+        self.displayPanelWindow.layoutApid.addWidget(self.label_tiempo)
+        self.displayPanelWindow.layoutApid.addWidget(self.entrada_tiempo)
+        self.displayPanelWindow.layoutApid.addWidget(self.boton_enviar)
+
+    def toggle_data_widgets(self):
+        if self.checkbox_data_required.isChecked():
+            for checkbox in self.checkboxes_data_required:
+                checkbox.setEnabled(True)
+            self.label_tiempo.show()
+            self.entrada_tiempo.show()
+            self.boton_enviar.show()
+        else:
+            for checkbox in self.checkboxes_data_required:
+                checkbox.setEnabled(False)
+            self.label_tiempo.hide()
+            self.entrada_tiempo.hide()
+            self.boton_enviar.hide()
+
+    def enviar_paquete(self):
+        apid_text = self.combo_apid.currentText()
+        data_required = 0
+
+        if apid_text == "APID_TC_REQUIRED_DATA (0x24)" or apid_text == "APID_TC_SET_PROGRMMED_TELEMETRY (0x30)":
+            for checkbox in self.checkboxes_data_required:
+                if checkbox.isChecked():
+                    data_required |= 1 << self.checkboxes_data_required.index(checkbox)
+            tiempo_str = self.entrada_tiempo.text()
+            tiempo = int(tiempo_str)
+            data = (tiempo << 16) | data_required
+        else:
+            data = 0
+
+        apid = int(apid_text.split("(")[1].split(")")[0], 16)
+
+        self.customTc(apid, data)
