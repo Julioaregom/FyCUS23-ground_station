@@ -130,7 +130,7 @@
      <rect>
       <x>150</x>
       <y>110</y>
-      <width>91</width>
+      <width>101</width>
       <height>31</height>
      </rect>
     </property>
@@ -148,7 +148,7 @@
      <rect>
       <x>165</x>
       <y>145</y>
-      <width>91</width>
+      <width>101</width>
       <height>31</height>
      </rect>
     </property>
@@ -166,7 +166,7 @@
      <rect>
       <x>190</x>
       <y>180</y>
-      <width>81</width>
+      <width>91</width>
       <height>31</height>
      </rect>
     </property>
@@ -755,9 +755,9 @@
    <widget class="QLabel" name="txt_tempbatt">
     <property name="geometry">
      <rect>
-      <x>60</x>
+      <x>50</x>
       <y>870</y>
-      <width>81</width>
+      <width>91</width>
       <height>31</height>
      </rect>
     </property>
@@ -767,7 +767,7 @@
      </font>
     </property>
     <property name="text">
-     <string>- T_batt:</string>
+     <string>- T_down:</string>
     </property>
    </widget>
    <widget class="QLabel" name="lbl_tempup">
@@ -803,7 +803,7 @@
      </font>
     </property>
     <property name="text">
-     <string>- T_up:</string>
+     <string>- T_batt:</string>
     </property>
    </widget>
    <widget class="QLabel" name="lbl_tempout">
@@ -875,7 +875,7 @@
      </font>
     </property>
     <property name="text">
-     <string>- T_down:</string>
+     <string>- T_mid:</string>
     </property>
    </widget>
    <widget class="QLabel" name="txt_time">
@@ -1169,7 +1169,7 @@
      <rect>
       <x>630</x>
       <y>180</y>
-      <width>51</width>
+      <width>141</width>
       <height>31</height>
      </rect>
     </property>
@@ -1257,7 +1257,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>Req. T_up</string>
+     <string>Req. T_batt</string>
     </property>
    </widget>
    <widget class="QPushButton" name="pushButton_Rqtbatt">
@@ -1270,7 +1270,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>Req. T_batt</string>
+     <string>Req. T_down</string>
     </property>
    </widget>
    <widget class="QPushButton" name="pushButton_Rqtdwon">
@@ -1283,7 +1283,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>Req. T_down</string>
+     <string>Req. T_mid</string>
     </property>
    </widget>
    <widget class="QPushButton" name="pushButton_Rqpv">
@@ -1371,6 +1371,55 @@
      </rect>
     </property>
     <layout class="QVBoxLayout" name="layoutApid"/>
+   </widget>
+   <widget class="QLabel" name="lbl_batdietemp">
+    <property name="geometry">
+     <rect>
+      <x>610</x>
+      <y>220</y>
+      <width>111</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>00.00</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_Rqdietemp">
+    <property name="geometry">
+     <rect>
+      <x>770</x>
+      <y>230</y>
+      <width>121</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Request Dietemp</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="txt_batdietemp">
+    <property name="geometry">
+     <rect>
+      <x>480</x>
+      <y>220</y>
+      <width>111</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>- Die Temp.:</string>
+    </property>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">

@@ -2,6 +2,7 @@
 import time, serial, threading,struct
 import bus_packet as bp
 import src.globals as GLOBALS
+import src.formats as fm
 import numpy as np
 from PyQt5.QtWidgets import QMainWindow, QMessageBox, QApplication, QLineEdit, QVBoxLayout, QLabel, QPushButton, QDialog, QWidget, QCheckBox,QComboBox,QGraphicsGridLayout
 from interfaces.displayPanelUI import Ui_FyCUS23_DisplayPanel
@@ -41,6 +42,7 @@ class displayPanel(QMainWindow):
         self.displayPanelWindow.pushButton_Rqpv.pressed.connect(self.btnRqPV)
         self.displayPanelWindow.pushButton_Rqbat.pressed.connect(self.btnRqBat)
         self.displayPanelWindow.pushButton_Rqcarga.pressed.connect(self.btnRqCarga)
+        self.displayPanelWindow.pushButton_Rqdietemp.pressed.connect(self.btnRqdietemp)
         self.displayPanelWindow.pushButton_Rqall.pressed.connect(self.btnRqAll)        
 
     #############################################
@@ -48,53 +50,58 @@ class displayPanel(QMainWindow):
     #############################################
     def btnRqGNSS(self):
         data=bp.REQUIRED_DATA_GNSS 
-        self.customTcReq(data)
+        self.customTcReq(data,2)
     def btnRqAcell(self):
         data=bp.REQUIRED_DATA_ACELL 
-        self.customTcReq(data)
+        self.customTcReq(data,2)
     def btnRqGyro(self):
         data=bp.REQUIRED_DATA_GYRO 
-        self.customTcReq(data)
+        self.customTcReq(data,2)
     def btnRqMag(self):
         data=bp.REQUIRED_DATA_MAGNETOMETER 
-        self.customTcReq(data)
+        self.customTcReq(data,2)
     def btnRqPress(self):
         data=bp.REQUIRED_DATA_PRESSURE 
-        self.customTcReq(data)
+        self.customTcReq(data,2)
     def btnRqTout(self):
         data=bp.REQUIRED_DATA_TEMPERATURE_OUTDOOR 
-        self.customTcReq(data)
+        self.customTcReq(data,2)
     def btnRqTup(self):
         data=bp.REQUIRED_DATA_TEMPERATURE_UP 
-        self.customTcReq(data)
+        self.customTcReq(data,2)
     def btnRqTbat(self):
-        data=bp.REQUIRED_DATA_TEMPERATURE_UP 
-        self.customTcReq(data)
+        data=bp.REQUIRED_DATA_TEMPERATURE_BATTERY 
+        self.customTcReq(data,2)
     def btnRqTdown(self):
         data=bp.REQUIRED_DATA_TEMPERATURE_DOWN 
-        self.customTcReq(data)
+        self.customTcReq(data,2)
     def btnRqPV(self):
-        data=bp.REQUIRED_DATA_PV_CURRENT + bp.REQUIRED_DATA_PV_VOLTAGE 
-        self.customTcReq(data)
+        data=bp.REQUIRED_DATA_PV_CURRENT | bp.REQUIRED_DATA_PV_VOLTAGE 
+        self.customTcReq(data,2)
     def btnRqBat(self):
-        data=bp.REQUIRED_DATA_BATTERY_CURRENT + bp.REQUIRED_DATA_BATTERY_VOLTAGE 
-        self.customTcReq(data)
+        data=bp.REQUIRED_DATA_BATTERY_CURRENT | bp.REQUIRED_DATA_BATTERY_VOLTAGE 
+        self.customTcReq(data,2)
     def btnRqCarga(self):
         data=bp.REQUIRED_DATA_BATTERY_CHARGING 
-        self.customTcReq(data)
+        self.customTcReq(data,2)
+    def btnRqdietemp(self):
+        data=bp.REQUIRED_DATA_BATTERY_DIETEMP 
+        self.customTcReq(data,2)
     def btnRqAll(self):
         data=bp.REQUIRED_DATA_ALL 
-        self.customTcReq(data)
+        self.customTcReq(data,2)
 
-    def customTcReq(self,data):
+
+    def customTcReq(self,data,len):
         # Convierte data_tc en una secuencia de 4 bytes
-        data_tc = data.to_bytes(3, byteorder='big')
+        data_tc = data.to_bytes(len, byteorder='big')
         # Crea una lista para meterlo en la función
         data_tc = list(data_tc)
         # Aquí debes implementar la lógica para enviar el paquete con el APID y DATA proporcionados
         print(f"Enviando paquete - APID: {hex(bp.APID_TC_REQUIRED_DATA)}, DATA: {data_tc}")
+        
         try:
-            status, datos = bp.bus_packet_EncodePacketize(bp.BUS_PACKET_TYPE_TC, bp.APID_TC_REQUIRED_DATA, bp.BUS_PACKET_ECF_EXIST, data_tc, len(data_tc))
+            status, datos = bp.bus_packet_EncodePacketize(bp.BUS_PACKET_TYPE_TC, bp.APID_TC_REQUIRED_DATA, bp.BUS_PACKET_ECF_EXIST, data_tc, len)
             if status == 0:
                 self.tc_buffer.put(datos)
         except:
@@ -226,49 +233,55 @@ class displayPanel(QMainWindow):
             t = bytes2float(data.data[last_pos:pos])
             self.displayPanelWindow.lbl_tempbatt.setText(str(t))
             
-        if(data.data[1] & bp.REQUIRED_DATA_TEMPERATURE_DOWN):
+        if(data.data[1] & (bp.REQUIRED_DATA_TEMPERATURE_DOWN>>8)):
             last_pos = pos
             pos+=4
-            t = bytes2float(data.data[last_pos:pos])
-            self.displayPanelWindow.lbl_tempdown.setText(str(t))
+            te = bytes2float(data.data[last_pos:pos])
+            self.displayPanelWindow.lbl_tempdown.setText(str(te))
 
-        if(data.data[1] & bp.REQUIRED_DATA_PV_VOLTAGE):
+        if(data.data[1] & (bp.REQUIRED_DATA_PV_VOLTAGE>>8)):
             last_pos = pos
             pos+=2
             pvV = bytes2uint(data.data[last_pos:pos])
+            pvV=fm.LTC4162_VIN_FORMAT_I2R(pvV)
             self.displayPanelWindow.lbl_pvV.setText(str(pvV))    
         
-        if(data.data[1] & bp.REQUIRED_DATA_PV_CURRENT):
+        if(data.data[1] & (bp.REQUIRED_DATA_PV_CURRENT>>8)):
             last_pos = pos
             pos+=2
             pvA = bytes2uint(data.data[last_pos:pos])
+            pvA=fm.LTC4162_VIN_FORMAT_I2R(pvA)
             self.displayPanelWindow.lbl_pvA.setText(str(pvA)) 
         
-        if(data.data[1] & bp.REQUIRED_DATA_BATTERY_VOLTAGE):
+        if(data.data[1] & (bp.REQUIRED_DATA_BATTERY_VOLTAGE>>8)):
             last_pos = pos
             pos+=2
             batV = bytes2uint(data.data[last_pos:pos])
+            batV=fm.LTC4162_VBAT_FORMAT_I2R(batV)
             self.displayPanelWindow.lbl_batV.setText(str(batV)) 
 
-        if(data.data[1] & bp.REQUIRED_DATA_BATTERY_CURRENT):
+        if(data.data[1] & (bp.REQUIRED_DATA_BATTERY_CURRENT>>8)):
             last_pos = pos
             pos+=2
             batA = bytes2uint(data.data[last_pos:pos])
+            batA=fm.LTC4162_IBAT_FORMAT_I2R(batA)
             self.displayPanelWindow.lbl_batA.setText(str(batA)) 
 
-        if(data.data[1] & bp.REQUIRED_DATA_BATTERY_CHARGING):
+        if(data.data[1] & (bp.REQUIRED_DATA_BATTERY_CHARGING>>8)):
             last_pos = pos
             pos+=2
             batCh = bytes2uint(data.data[last_pos:pos])
+            batCh = fm.LTC4162_CHARGER_STATE(batCh)
             self.displayPanelWindow.lbl_batcarga.setText(str(batCh)) 
 
-        if(data.data[1] & bp.REQUIRED_DATA_BATTERY_DIETEMP):
+        if(data.data[1] & (bp.REQUIRED_DATA_BATTERY_DIETEMP>>8)):
             last_pos = pos
             pos+=2
             batDie = bytes2uint(data.data[last_pos:pos])
-            #self.displayPanelWindow.lbl_.setText(str(batDie))
+            batDie=fm.LTC4162_DIE_TEMP_FORMAT_I2R(batDie)
+            self.displayPanelWindow.lbl_batdietemp.setText(str(batDie))
 
-        if(data.data[1] & bp.REQUIRED_DATA_CURRENT_TIME):
+        if(data.data[1] & (bp.REQUIRED_DATA_CURRENT_TIME>>8)):
             last_pos = pos
             pos+=4
             time = bytes2float(data.data[last_pos:pos])
@@ -396,11 +409,12 @@ class displayPanel(QMainWindow):
                 if checkbox.isChecked():
                     data_required |= 1 << self.checkboxes_data_required.index(checkbox)
             tiempo_str = self.entrada_tiempo.text()
+            if not tiempo_str:
+                tiempo_str=0
             tiempo = int(tiempo_str)
             data = (tiempo << 16) | data_required
         else:
             data = 0
 
         apid = int(apid_text.split("(")[1].split(")")[0], 16)
-
         self.customTc(apid, data)
