@@ -1,3 +1,9 @@
+'''
+# Author/s: FyCUS23
+# Project: FyCUS23 / 2023 Edition
+# License: GNU General Public License, version 3 (GPL-3.0)
+'''
+
 import multiprocessing as mp
 import matplotlib.pyplot as plt
 import sys, time, keyboard, struct, random

@@ -1,3 +1,10 @@
+'''
+# Author/s: Julio Arévalo Gómez
+# Email: julioaregom02@gmail.com
+# Project: FyCUS23 / 2023 Edition
+# License: GNU General Public License, version 3 (GPL-3.0)
+'''
+
 import numpy as np
 
 def Gps2Rotator(_lat:float, _lon:float,_h:float,_ref_lat:float,_ref_lon:float,_ref_h:float):

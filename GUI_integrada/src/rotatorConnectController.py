@@ -1,3 +1,10 @@
+'''
+# Author/s: Gonzalo Arévalo Gómez
+# Email: gonzalo.arevalo.gomez@gmail.com
+# Project: FyCUS23 / 2023 Edition
+# License: GNU General Public License, version 3 (GPL-3.0)
+'''
+
 
 import time, serial
 import src.globals as GLOBALS

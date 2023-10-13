@@ -1,3 +1,10 @@
+'''
+# Author/s: Julio Arévalo Gómez, Gonzalo Arévalo Gómez
+# Email: julioaregom02@gmail.com , gonzalo.arevalo.gomez@gmail.com
+# Project: FyCUS23 / 2023 Edition
+# License: GNU General Public License, version 3 (GPL-3.0)
+'''
+
 import threading, time
 import src.globals as GLOBALS
 from PyQt5.QtWidgets import QMainWindow, QApplication, QDialog, QLineEdit, QLabel, QVBoxLayout, QPushButton, QComboBox, QMessageBox
