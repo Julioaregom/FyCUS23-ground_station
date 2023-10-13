@@ -7,7 +7,7 @@ from src.RotatorIOController import RotatorIOHandler, RotatorPacket
 from src.Gps2Rotator import Gps2Rotator
 
 class RotatorCPanelController(QMainWindow):
-    def __init__(self, _rotator_handler: RotatorIOHandler):
+    def __init__(self, _rotator_handler: RotatorIOHandler, _buffer):
         super().__init__()
         self.rotator_handler = _rotator_handler
         self.btnOnOff_state = False
@@ -15,7 +15,9 @@ class RotatorCPanelController(QMainWindow):
         self.stop_tracking_event = threading.Event()
         self.stop_read_event = threading.Event()
         self.stop_GPSread_event = threading.Event()
+        self.gnss_buffer = _buffer
 
+        self.retFlag=0
         self.end_el=0.0
         self.end_az=0.0
 
@@ -92,7 +94,18 @@ class RotatorCPanelController(QMainWindow):
     def btnSendPressed(self):
         if (self.rotatorCPanelWindow.boxDataAz.text() != "") or (self.rotatorCPanelWindow.boxDataEl.text() != ""):
             self.rotator_handler.send(RotatorPacket('PO', self.rotatorCPanelWindow.boxDataAz.text(), self.rotatorCPanelWindow.boxDataEl.text()))
-   
+    
+    # def btnSendPressed2(self):
+    #     if self.retFlag==0:
+    #         self.rotator_handler.send(RotatorPacket('PO', '90', '50'))
+    #         self.retFlag=1
+    #     if self.retFlag==1:
+    #         self.rotator_handler.send(RotatorPacket('PO', '0', '0'))
+    #         self.retFlag=0
+
+
+
+
     def btnOnOffPressed(self):
         self.btnOnOff_state = not self.btnOnOff_state #Toggle status
         if self.btnOnOff_state: # Mode on
@@ -151,11 +164,34 @@ class RotatorCPanelController(QMainWindow):
             except:
                 pass
 
+
+
     def GPSReadThread(self, stop_thread_event: threading.Event):
+        def nmea2geodetic(data):
+            import numpy as np
+            lat_aux=data[0]/100
+            lat_deg=np.trunc(lat_aux)
+            lat_min=lat_aux-lat_deg
+            lat=lat_deg+lat_min/60
+
+            lon_aux=data[2]/100
+            lon_deg=np.trunc(lon_aux)
+            lon_min=lon_aux-lon_deg
+            lon=lon_deg+lon_min/60
+
+            data[0]=lat
+            data[1]=chr(data[1])
+            data[2]=lon  
+            data[3]=chr(data[3])
+            return data
+        
         stop_thread_event.clear()
         while not stop_thread_event.is_set():
             try:
-                lat,latSign,lon,lonSign,altOrt,undGeoide=GLOBALS.GLOBAL_GNSS
+                gnss_data = self.gnss_buffer.get()[0]
+                gnss_data_tr=nmea2geodetic(gnss_data)
+
+                lat,latSign,lon,lonSign,altOrt,undGeoide=gnss_data_tr
                 alt_error=False
                 if latSign=='S':
                     lat=-lat

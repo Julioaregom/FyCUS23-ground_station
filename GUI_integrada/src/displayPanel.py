@@ -99,7 +99,6 @@ class displayPanel(QMainWindow):
         data_tc = list(data_tc)
         # Aquí debes implementar la lógica para enviar el paquete con el APID y DATA proporcionados
         print(f"Enviando paquete - APID: {hex(bp.APID_TC_REQUIRED_DATA)}, DATA: {data_tc}")
-        
         try:
             status, datos = bp.bus_packet_EncodePacketize(bp.BUS_PACKET_TYPE_TC, bp.APID_TC_REQUIRED_DATA, bp.BUS_PACKET_ECF_EXIST, data_tc, len)
             if status == 0:
