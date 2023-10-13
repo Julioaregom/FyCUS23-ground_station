@@ -1,3 +1,10 @@
+<!-- 
+# Author/s: Julio Arévalo Gómez, Gonzalo Arévalo Gómez
+# Email: julioaregom02@gmail.com , gonzalo.arevalo.gomez@gmail.com
+# Project: FyCUS23 / 2023 Edition
+# License: GNU General Public License, version 3 (GPL-3.0)
+-->
+
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>rotatorControlPanel</class>
@@ -771,6 +778,13 @@
     </widget>
     <addaction name="menuConfigure"/>
    </widget>
+   <widget class="QMenu" name="menuReload">
+    <property name="title">
+     <string>Application</string>
+    </property>
+    <addaction name="actReload"/>
+   </widget>
+   <addaction name="menuReload"/>
    <addaction name="menuParameters"/>
   </widget>
   <action name="actTrSendFreq">
@@ -781,6 +795,11 @@
   <action name="actRefCoords">
    <property name="text">
     <string>Point reference coordinates</string>
+   </property>
+  </action>
+  <action name="actReload">
+   <property name="text">
+    <string>Reload</string>
    </property>
   </action>
  </widget>

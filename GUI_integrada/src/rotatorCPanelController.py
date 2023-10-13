@@ -1,12 +1,20 @@
+'''
+# Author/s: Julio Arévalo Gómez, Gonzalo Arévalo Gómez
+# Email: julioaregom02@gmail.com , gonzalo.arevalo.gomez@gmail.com
+# Project: FyCUS23 / 2023 Edition
+# License: GNU General Public License, version 3 (GPL-3.0)
+'''
+
 import threading, time
 import src.globals as GLOBALS
-from PyQt5.QtWidgets import QMainWindow, QApplication, QDialog, QLineEdit, QLabel, QVBoxLayout, QPushButton, QComboBox
+from PyQt5.QtWidgets import QMainWindow, QApplication, QDialog, QLineEdit, QLabel, QVBoxLayout, QPushButton, QComboBox, QMessageBox
+from PyQt5.QtCore import QCoreApplication
 from interfaces.rotatorControlPanelUi import Ui_rotatorControlPanel
 from src.RotatorIOController import RotatorIOHandler, RotatorPacket
 from src.Gps2Rotator import Gps2Rotator
 
 class RotatorCPanelController(QMainWindow):
-    def __init__(self, _rotator_handler: RotatorIOHandler):
+    def __init__(self, _rotator_handler: RotatorIOHandler, _buffer):
         super().__init__()
         self.rotator_handler = _rotator_handler
         self.btnOnOff_state = False
@@ -14,15 +22,17 @@ class RotatorCPanelController(QMainWindow):
         self.stop_tracking_event = threading.Event()
         self.stop_read_event = threading.Event()
         self.stop_GPSread_event = threading.Event()
+        self.gnss_buffer = _buffer
 
+        self.retFlag=0
         self.end_el=0.0
         self.end_az=0.0
 
         self.rotatorCPanelWindow = Ui_rotatorControlPanel()
         self.rotatorCPanelWindow.setupUi(self)
         self.show()
-        self.center()
-        
+        self.topRight()
+
         # Set parameters default configuration 
         self.tr_freq = GLOBALS.TR_SEND_FREQ
         self.ref_latitude = GLOBALS.REF_LAT
@@ -42,10 +52,11 @@ class RotatorCPanelController(QMainWindow):
         # Actions
         self.rotatorCPanelWindow.actTrSendFreq.triggered.connect(self.actConfigTrackingFreq)
         self.rotatorCPanelWindow.actRefCoords.triggered.connect(self.actConfigRefCoords)
+        self.rotatorCPanelWindow.actReload.triggered.connect(self.actPannicMsgBox)
 
         #Events
         self.rotatorCPanelWindow.boxDataAz.textChanged.connect(lambda: self.eveTextEdited(3))
-        self.rotatorCPanelWindow.boxDataEl.textChanged.connect(lambda: self.eveTextEdited(2))
+        self.rotatorCPanelWindow.boxDataEl.textChanged.connect(lambda: self.eveTextEdited(3))
 
         self.rotatorCPanelWindow.boxDataAz.returnPressed.connect(self.eveReturnPressed)
         self.rotatorCPanelWindow.boxDataEl.returnPressed.connect(self.eveReturnPressed)
@@ -54,6 +65,7 @@ class RotatorCPanelController(QMainWindow):
         '''
         @Overrides
         '''
+        print("Closing interfaces...")
         #Gently stop possible running threads
         self.stop_read_event.set()
         self.stop_tracking_event.set()
@@ -62,6 +74,11 @@ class RotatorCPanelController(QMainWindow):
         self.rotator_handler.serial.close()
         event.accept()
    
+    def pannicRestart(self):
+        self.close()
+        QCoreApplication.exit(1)
+
+
     #####################################
     ##### Buttons behaviour (Slots) #####
     #####################################
@@ -84,7 +101,18 @@ class RotatorCPanelController(QMainWindow):
     def btnSendPressed(self):
         if (self.rotatorCPanelWindow.boxDataAz.text() != "") or (self.rotatorCPanelWindow.boxDataEl.text() != ""):
             self.rotator_handler.send(RotatorPacket('PO', self.rotatorCPanelWindow.boxDataAz.text(), self.rotatorCPanelWindow.boxDataEl.text()))
-   
+    
+    # def btnSendPressed2(self):
+    #     if self.retFlag==0:
+    #         self.rotator_handler.send(RotatorPacket('PO', '90', '50'))
+    #         self.retFlag=1
+    #     if self.retFlag==1:
+    #         self.rotator_handler.send(RotatorPacket('PO', '0', '0'))
+    #         self.retFlag=0
+
+
+
+
     def btnOnOffPressed(self):
         self.btnOnOff_state = not self.btnOnOff_state #Toggle status
         if self.btnOnOff_state: # Mode on
@@ -143,11 +171,34 @@ class RotatorCPanelController(QMainWindow):
             except:
                 pass
 
+
+
     def GPSReadThread(self, stop_thread_event: threading.Event):
+        def nmea2geodetic(data):
+            import numpy as np
+            lat_aux=data[0]/100
+            lat_deg=np.trunc(lat_aux)
+            lat_min=lat_aux-lat_deg
+            lat=lat_deg+lat_min/60
+
+            lon_aux=data[2]/100
+            lon_deg=np.trunc(lon_aux)
+            lon_min=lon_aux-lon_deg
+            lon=lon_deg+lon_min/60
+
+            data[0]=lat
+            data[1]=chr(data[1])
+            data[2]=lon  
+            data[3]=chr(data[3])
+            return data
+        
         stop_thread_event.clear()
         while not stop_thread_event.is_set():
             try:
-                lat,latSign,lon,lonSign,altOrt,undGeoide=GLOBALS.GLOBAL_GNSS
+                gnss_data = self.gnss_buffer.get()[0]
+                gnss_data_tr=nmea2geodetic(gnss_data)
+
+                lat,latSign,lon,lonSign,altOrt,undGeoide=gnss_data_tr
                 alt_error=False
                 if latSign=='S':
                     lat=-lat
@@ -166,8 +217,8 @@ class RotatorCPanelController(QMainWindow):
                     altEllip=0.0
                 
                 # Imprimo datos de GPS
-                self.rotatorCPanelWindow.lblLatitude.setText(str(round(lat,4)))
-                self.rotatorCPanelWindow.lblLongitude.setText(str(round(lon,4)))
+                self.rotatorCPanelWindow.lblLatitude.setText(str(round(lat,3)))
+                self.rotatorCPanelWindow.lblLongitude.setText(str(round(lon,3)))
                 if not alt_error:
                     self.rotatorCPanelWindow.lblAltitude.setText(str(round(altOrt,4)))
                 else:
@@ -267,6 +318,10 @@ class RotatorCPanelController(QMainWindow):
         elif status == '4':
             return "homing"
     
+    def topRight(self):
+        desktop_geo = QApplication.desktop().screenGeometry()
+        self.move(desktop_geo.topRight() - self.rect().topRight())
+
     def center(self):
         frame_geo = self.frameGeometry()
         screen_geo = QApplication.desktop().screenGeometry().center()
@@ -338,3 +393,15 @@ class RotatorCPanelController(QMainWindow):
             return float(line_edit_lat.text()), float(line_edit_lon.text()), float(line_edit_alt.text())
         else:
             return None, None, None
+
+    def actPannicMsgBox(self):
+        msgBox = QMessageBox()
+        msgBox.resize(400, 300)
+        msgBox.setIcon(QMessageBox.Icon.Warning)
+        msgBox.setWindowTitle("Restart application")
+        msgBox.setText("Are you sure you want to restart the application?")
+        msgBox.setStandardButtons(QMessageBox.Yes | QMessageBox.Cancel)
+        result = msgBox.exec()
+
+        if result == QMessageBox.Yes:
+            self.pannicRestart()

@@ -1,6 +1,12 @@
+'''
+# Author/s: FyCUS23
+# Project: FyCUS23 / 2023 Edition
+# License: GNU General Public License, version 3 (GPL-3.0)
+'''
+
 import multiprocessing as mp
 import matplotlib.pyplot as plt
-import sys, time, keyboard, struct
+import sys, time, keyboard, struct, random
 import numpy as np
 
 import socket
@@ -11,6 +17,7 @@ import bus_packet as bp
 import src.globals as GLOBALS
 
 from src.rotatorConnectController import RotatorConnectController
+from src.displayPanel import displayPanel
 from PyQt5 import QtWidgets
 
 
@@ -18,13 +25,10 @@ from PyQt5 import QtWidgets
 DEFAULT_HOST = "192.168.1.1"
 DEFAULT_PORT = 2023
 
-
-
 float2bytes = lambda x: struct.pack('f', float(x))
 bytes2float = lambda x: struct.unpack('f', bytes(x))[0]
 bytes2uint = lambda x: struct.unpack('<H', bytes(x))[0]
 bytes2int = lambda x: struct.unpack('<h', bytes(x))[0]
-
 
 
 def decodeTM(data):
@@ -41,44 +45,37 @@ def decodeTM(data):
         last_pos = pos
         pos+=2
         accel_x = bytes2int(data.data[last_pos:pos])
-        ret.append(accel_x)
         last_pos = pos
         pos+=2
         accel_y = bytes2int(data.data[last_pos:pos])
-        ret.append(accel_y)
         last_pos = pos
         pos+=2
         accel_z = bytes2int(data.data[last_pos:pos])
-        ret.append(accel_z)
+        ret.append([accel_x,accel_y,accel_z])
 
     if(data.data[0] & bp.REQUIRED_DATA_GYRO):
         last_pos = pos
         pos+=2
         gyro_x = bytes2int(data.data[last_pos:pos])
-        ret.append(gyro_x)
         last_pos = pos
         pos+=2
         gyro_y = bytes2int(data.data[last_pos:pos])
-        ret.append(gyro_y)
         last_pos = pos
         pos+=2
         gyro_z = bytes2int(data.data[last_pos:pos])
-        ret.append(gyro_z)
+        ret.append([gyro_x,gyro_y,gyro_z])
 
     if(data.data[0] & bp.REQUIRED_DATA_MAGNETOMETER):
         last_pos = pos
         pos+=2
         mag_x = bytes2int(data.data[last_pos:pos])
-        ret.append(mag_x)
         last_pos = pos
         pos+=2
         mag_y = bytes2int(data.data[last_pos:pos])
-        ret.append(mag_y)
         last_pos = pos
         pos+=2
         mag_z = bytes2int(data.data[last_pos:pos])
-        ret.append(mag_z)                      
-
+        ret.append([mag_x,mag_y,mag_z])              
 
     if(data.data[0] & bp.REQUIRED_DATA_PRESSURE):
         last_pos = pos
@@ -86,40 +83,71 @@ def decodeTM(data):
         pressure = bytes2float(data.data[last_pos:pos])
         ret.append(pressure)  
 
-    if(data.data[0] & bp.REQUIRED_DATA_TEMPERATURE_0):
+    if(data.data[0] & bp.REQUIRED_DATA_TEMPERATURE_OUTDOOR):
+        last_pos = pos
+        pos+=4
+        t = bytes2float(data.data[last_pos:pos])
+        ret.append(t)
+
+    if(data.data[0] & bp.REQUIRED_DATA_TEMPERATURE_UP):
+        last_pos = pos
+        pos+=4
+        t = bytes2float(data.data[last_pos:pos])
+        ret.append(t)
+        
+    if(data.data[0] & bp.REQUIRED_DATA_TEMPERATURE_BATTERY):
+        last_pos = pos
+        pos+=4
+        t = bytes2float(data.data[last_pos:pos])
+        ret.append(t)
+        
+    if(data.data[1] & (bp.REQUIRED_DATA_TEMPERATURE_DOWN>>8)):
         last_pos = pos
         pos+=4
         t = bytes2float(data.data[last_pos:pos])
         ret.append(t) 
-        
-    if(data.data[0] & bp.REQUIRED_DATA_TEMPERATURE_1):
-        last_pos = pos
-        pos+=4
-        pressure = bytes2float(data.data[last_pos:pos])
-        
-    if(data.data[0] & bp.REQUIRED_DATA_TEMPERATURE_2):
-        last_pos = pos
-        pos+=4
-        t = bytes2float(data.data[last_pos:pos])
-        ret.append(t) 
-        
-    if(data.data[1] & bp.REQUIRED_DATA_TEMPERATURE_3):
-        last_pos = pos
-        pos+=4
-        y = bytes2float(data.data[last_pos:pos])
-        ret.append(t) 
 
-    # if(data.data[1] & bp.REQUIRED_DATA_TEMPERATURE_3):
-    #     last_pos = pos
-    #     pos+=4
-    #     y = bytes2float(data.data[last_pos:pos])
-    #     ret.append(t) 
+    if(data.data[1] & (bp.REQUIRED_DATA_PV_VOLTAGE>>8)):
+        last_pos = pos
+        pos+=2
+        pvV = bytes2uint(data.data[last_pos:pos])
+        ret.append(pvV)    
+    
+    if(data.data[1] & (bp.REQUIRED_DATA_PV_CURRENT>>8)):
+        last_pos = pos
+        pos+=2
+        pvA = bytes2uint(data.data[last_pos:pos])
+        ret.append(pvA) 
+    
+    if(data.data[1] & (bp.REQUIRED_DATA_BATTERY_VOLTAGE>>8)):
+        last_pos = pos
+        pos+=2
+        batV = bytes2uint(data.data[last_pos:pos])
+        ret.append(batV) 
 
-    if(data.data[1] & bp.REQUIRED_DATA_CURRENT_TIME):
+    if(data.data[1] & (bp.REQUIRED_DATA_BATTERY_CURRENT>>8)):
+        last_pos = pos
+        pos+=2
+        batA = bytes2uint(data.data[last_pos:pos])
+        ret.append(batA) 
+
+    if(data.data[1] & (bp.REQUIRED_DATA_BATTERY_CHARGING>>8)):
+        last_pos = pos
+        pos+=2
+        batCh = bytes2uint(data.data[last_pos:pos])
+        ret.append(batCh) 
+
+    if(data.data[1] & (bp.REQUIRED_DATA_BATTERY_DIETEMP>>8)):
+        last_pos = pos
+        pos+=2
+        batDie = bytes2uint(data.data[last_pos:pos])
+        ret.append(batDie) 
+
+    if(data.data[1] & (bp.REQUIRED_DATA_CURRENT_TIME>>8)):
         last_pos = pos
         pos+=4
         time = bytes2float(data.data[last_pos:pos])
-        ret.append(time)    
+        ret.append(time) 
     return ret
 
 
@@ -131,8 +159,8 @@ def bytes2nmea(data):
     ew = data[9]
     alt = bytes2float(data[10:14])
     sep = bytes2float(data[14:18])
-    
-    return list([lat, ns, lon, ew, alt, sep])
+
+    return [lat, ns, lon, ew, alt, sep]
 
 def nmea2geodetic(data):
     lat_aux=data[0]/100
@@ -148,8 +176,6 @@ def nmea2geodetic(data):
     data[0]=lat
     data[2]=lon  
     return data
-
-
 
 
 
@@ -196,15 +222,17 @@ def mp_modem (data_in_buffer, data_out_buffer):
 
         # Conectar socket TCP/IP (puedes hacerlo UDP)
         print("Conectando con el modem...")
-        try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.connect((host, port))
-        except:
-            print("Error en la conexión TCP/IP")
-            print("Reconectando en 3 segundos...")
-            time.sleep(3)
+        while True:
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.connect((host, port))
+                print("Conexión establecida")
+                break
+            except:
+                print("Error en la conexión TCP/IP")
+                print("Reconectando en 3 segundos...")
+                time.sleep(3)
             
-        print("Conexión establecida")
 
 
         # Un hilo para enviar y otro para recibir, así no bloquean el proceso la lectura de TCP/IP(RX) y la de colas(TX)
@@ -224,7 +252,7 @@ def mp_modem (data_in_buffer, data_out_buffer):
     
     
 
-def mp_data_process(data_in, data_gnss, data_tm):
+def mp_data_process(data_in, data_gnss, data_tm_tmtc_buffer):
     """
     Procesa los datos recibidos y decide qué hacer con ellos.
     Si hay datos de GNSS, los pone en la cola de GNSS.
@@ -251,13 +279,10 @@ def mp_data_process(data_in, data_gnss, data_tm):
                 
                 telemetry = decodeTM(data)
                 data_gnss.put(telemetry[0])
-                print(telemetry)
-              
+                print(telemetry)              
                
-            data_tm.put(data)
+            data_tm_tmtc_buffer.put(data)
 
-            
-            
             # SIEMPRE guardar datos en archivo txt
             
             with open('data.csv', "a") as file:
@@ -273,6 +298,7 @@ def mp_data_process(data_in, data_gnss, data_tm):
             pass
     
 
+
 def gnss_buffer_get(data_gnss_buffer):
     while True:
         try:
@@ -284,38 +310,42 @@ def gnss_buffer_get(data_gnss_buffer):
             GLOBALS.GLOBAL_GNSS=gnss_data
         except:
             pass
+        
+        
 def mp_antenna(data_gnss_buffer):
     """
     GUI de la antena.
     A completar por Julio.
     """
+
     app = QtWidgets.QApplication(sys.argv)
-    gps_connect_window = RotatorConnectController()   
+    exit_status = 1 # Bad exit 
 
-    rotGUI_thread = th.Thread(target=gnss_buffer_get, args=([data_gnss_buffer]))
-    rotGUI_thread.start()
-    sys.exit(app.exec_())
 
-def gui_tmtc(tm_buffer, tc_buffer):
+    while exit_status == 1:
+        gps_connect_window = RotatorConnectController(data_gnss_buffer)
+        exit_status = app.exec_() # 0 if normal exit
+
+    sys.exit()
+
+
+
+
+
+def gui_tmtc(_tm_tmtc_buffer,_tc_buffer):
     """
     GUI de TM/TC.
     A completar por Julio.
     """    
-    # No poner en esta función el while True porque no hace bien la excepción del teclado
-    
-    # Testing
-    import random
-    if keyboard.is_pressed('q'):  # if key 'q' is pressed 
-        time.sleep(0.5)
-        print("Enviando TC")
-        datos = [random.randint(0, 255) for _ in range(10)]
-        status, data = bp.bus_packet_EncodePacketize(bp.BUS_PACKET_TYPE_TC, bp.APID_TC_ARE_YOU_ALIVE, bp.BUS_PACKET_ECF_EXIST, datos, random.randint(0, 10))
-        if status == 0:
-            tc_buffer.put(data)
-    pass
-    
+    app = QtWidgets.QApplication(sys.argv)
+    gps_connect_window = displayPanel(_tm_tmtc_buffer, _tc_buffer)
+    sys.exit(app.exec_())
 
     
+
+
+
+
 if __name__ == '__main__':
     tm_buffer = mp.Queue()
     tc_buffer = mp.Queue()
@@ -329,12 +359,10 @@ if __name__ == '__main__':
     mp_data_process_handle = mp.Process(name="Data process", target=mp_data_process, args=(tm_buffer, gnss_buffer, tm_tmtc_buffer))
     mp_modem_handle.start(), mp_data_process_handle.start(), mp_antenna_handle.start()
 
-    while True:
-        try:
-            gui_tmtc(tm_tmtc_buffer, tc_buffer)
+    try:
+        gui_tmtc(tm_tmtc_buffer, tc_buffer)
         
-        except KeyboardInterrupt:
+    except KeyboardInterrupt:
             mp_modem_handle.terminate()
             mp_data_process_handle.terminate()
             mp_antenna_handle.terminate()
-            break
